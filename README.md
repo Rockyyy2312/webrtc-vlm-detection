@@ -69,6 +69,11 @@ webrtcdet/
 
 ------
 
+## 🎥 Demo Video
+
+[Watch the demo](./demo/demo.mp4)
+
+
 ## 🚀 How to Run
 
 ```bash
@@ -130,5 +135,6 @@ The major focus was on:
 -The remaining gaps are planned and documented above.
 
 👤 Candidate: Laukik Bhushan Parashare
+
 
 
