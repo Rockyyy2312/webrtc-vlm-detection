@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Sender</title></head>
+<body>
+  <h3>Phone → streaming…</h3>
+  <video id="preview" autoplay playsinline muted></video>
+  <script type="module">
+    const room = "default";
+    const ws = new WebSocket(`ws://${location.host}`);
+    const pc = new RTCPeerConnection();
+
+    // DataChannel for timestamps
+    const dc = pc.createDataChannel("meta");
+    let frameId = 0;
+
+    const video = document.getElementById("preview");
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    video.srcObject = stream;
+    for (const track of stream.getTracks()) pc.addTrack(track, stream);
+
+    // WebSocket signaling
+    ws.onopen = () => ws.send(JSON.stringify({ type: "join", room }));
+    ws.onmessage = async (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "answer") await pc.setRemoteDescription(msg.sdp);
+      if (msg.type === "candidate") await pc.addIceCandidate(msg.candidate);
+    };
+
+    pc.onicecandidate = ({ candidate }) => {
+      if (candidate) ws.send(JSON.stringify({ type: "candidate", room, candidate }));
+    };
+
+    // Create and send offer
+    const offer = await pc.createOffer({ offerToReceiveVideo: false });
+    await pc.setLocalDescription(offer);
+    ws.onopen = ws.onopen || (()=>{});
+    ws.addEventListener("open", ()=>{
+      ws.send(JSON.stringify({ type: "offer", room, role: "sender", sdp: pc.localDescription }));
+    });
+
+    // Send capture_ts at ~15 Hz
+    setInterval(() => {
+      frameId++;
+      const capture_ts = Date.now();
+      dc.readyState === "open" && dc.send(JSON.stringify({ frame_id: frameId, capture_ts }));
+    }, 66);
+  </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Viewer</title><link rel="stylesheet" href="./styles.css"></head>
+<body>
+  <h3>Viewer</h3>
+  <video id="remote" autoplay playsinline></video>
+  <canvas id="overlay"></canvas>
+  <div id="stats"></div>
+  <button id="bench">Run 30s Bench</button>
+  <script type="module">
+    import { setupViewerPC } from "/static/../src/webrtc.js";
+    import { drawBoxes } from "/static/../src/overlay.js";
+    import { runWasmIfNeeded, runServerIfNeeded } from "/static/../src/wasm_inference.js";
+    import * as metrics from "/static/../src/metrics.js";
+
+    const mode = await fetch("/").then(()=>{}).catch(()=>{}); // noop: mode is sent via ws
+    const { pc, ws, dcMeta, remoteVideo, overlay } = await setupViewerPC();
+    let lastCapture = { frame_id: 0, capture_ts: Date.now() };
+    dcMeta.onmessage = (e) => { try { lastCapture = JSON.parse(e.data); } catch {} };
+
+    // choose inference path at runtime (server vs wasm vs mock)
+    let infer = await runWasmIfNeeded(remoteVideo).catch(()=>null);
+    if (!infer) infer = await runServerIfNeeded().catch(()=>null);
+    if (!infer) infer = async ()=>({ boxes: [{label:"person",score:0.9,xmin:0.3,ymin:0.2,xmax:0.6,ymax:0.8}] });
+
+    const canvas = document.getElementById("overlay");
+    const statsDiv = document.getElementById("stats");
+    const video = document.getElementById("remote");
+
+    function resize() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+    video.addEventListener("loadedmetadata", resize);
+    window.addEventListener("resize", resize);
+
+    // frame loop ~15 FPS
+    setInterval(async () => {
+      if (!video.videoWidth) return;
+      const t0 = performance.now();
+      const det = await infer(video);
+      drawBoxes(canvas, det.boxes);
+      const display_ts = Date.now();
+      metrics.record({
+        frame_id: lastCapture.frame_id,
+        capture_ts: lastCapture.capture_ts,
+        recv_ts: lastCapture.capture_ts,       // simplified
+        inference_ts: t0|0,
+        display_ts,
+        processed: true
+      });
+      statsDiv.textContent = metrics.summaryString();
+    }, 66);
+
+    document.getElementById("bench").onclick = async () => {
+      const out = metrics.toJSON();
+      const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "metrics.json";
+      a.click();
+    };
+  </script>
+</body>
+</html>
