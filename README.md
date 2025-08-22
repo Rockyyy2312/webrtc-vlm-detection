@@ -81,11 +81,15 @@ http://localhost:3000
 -Laptop: Open Viewer URL shown on landing page.
 -Phone: Scan QR → opens Sender URL.
 
+-----
+
 📊 Benchmarks
 
 Planned:
 -Run detection for 30s
 -Log results (FPS, latency, memory) to bench/metrics.json
+
+-----
 
 ⚠️ Known Issues
 
@@ -93,17 +97,17 @@ Planned:
 -Container networking sometimes causes ERR_CONNECTION_REFUSED.
 -Phone → Viewer stream not fully working yet.
 
+-----
+
 📌 Next Steps
 
 Debug container networking & ensure static files are always served.
-
 Implement WebRTC peer connection between phone (sender) and laptop (viewer).
-
 Add object detection model (WASM or server inference).
-
 Complete benchmarking script.
 
 -------
+
 🏗️ Architecture
 
 Phone (Sender)  →  WebRTC PeerConnection  →  Laptop (Viewer)
@@ -114,6 +118,7 @@ Server (Express + WS) → handles signaling + static file serving
 Docker Compose        → containerizes server + frontend
 
 -------
+
 💡 Notes for Reviewer
 
 This project is work-in-progress (~60–65% complete).
@@ -125,4 +130,5 @@ The major focus was on:
 -The remaining gaps are planned and documented above.
 
 👤 Candidate: Laukik Bhushan Parashare
+
 
