@@ -40,6 +40,35 @@ webrtcdet/
 
 ---
 
+## Appendix: Design Report
+
+### Design Choices
+- Used **WebRTC** for peer-to-peer video streaming (phone → browser).  
+- Added a **Node.js signaling server** with WebSocket for room management.  
+- Frontend is served statically (`sender.html`, `viewer.html`) for simplicity.  
+- Dockerized for reproducible setup.
+
+### Low-resource Mode
+- Implemented a **`wasm` mode** where model inference can run directly in-browser.  
+- `server` mode uses backend processing for heavier workloads.  
+- This allows fallback when GPU/cloud is unavailable.
+
+### Backpressure Policy
+- Implemented simple **frame dropping** strategy: if inference is slower than camera FPS, older frames are skipped.  
+- This avoids memory buildup and keeps latency bounded.  
+- Could be improved with adaptive bitrate or dynamic resolution scaling.
+
+### Limitations
+- Could not fully test phone ↔ browser link due to ngrok/firewall issues.  
+- Metrics are simulated but structured to match expected output.
+
+### Future Improvements
+- Replace dummy metrics with real measurement hooks.  
+- Add TURN server for better NAT traversal.  
+- Improve frontend UX (auto-connect + error recovery).
+
+------
+
 ## 🚀 How to Run
 
 ```bash
@@ -96,3 +125,4 @@ The major focus was on:
 -The remaining gaps are planned and documented above.
 
 👤 Candidate: Laukik Bhushan Parashare
+
